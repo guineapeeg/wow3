@@ -8,3 +8,6 @@ input/file_2.txt
 input/file_3.txt
 1.0
 2.8
+input/file_4.txt
+1.0
+2.8

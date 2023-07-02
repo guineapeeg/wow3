@@ -5,7 +5,7 @@
 #include <string.h>
 
 typedef struct{
-    char* channelPath;
+    char channelPath[20];
     float low_pass_filter_value;
     float amplification;
 } ThreadArgument;
@@ -36,22 +36,30 @@ void* readFileThread(void * args){
     fptr = fopen(actualArguments->channelPath, "r");
     //fptr = fopen("input/file_1.txt", "r");
 
-    printf("This: %s", actualArguments->channelPath);
+    //printf("This: %s", actualArguments->channelPath);
     
     int resRead;
     char buffer[bufferSize];
     char c;
 
-    if (fptr != NULL){
-        do{
-            for(int i = 0; i<bufferSize && c != EOF; i++){
-            c = fgetc(fptr);
-            buffer[i] = c;
-        }
-    }while(c != EOF);
-    }else{
-        printf("Error \n");
+    for(int counter = 0; counter < bufferSize; counter++){
+        c = fgetc(fptr);
+        //printf("%c", c);
+        buffer[counter] = c;
     }
+
+    // if (fptr != NULL){
+    //     do{
+            // for(int i = 0; i<bufferSize && c != EOF; i++){
+            // c = fgetc(fptr);
+            // buffer[i] = c;
+
+
+    //     }
+    // }while(c != EOF);
+    // }else{
+    //     printf("Error \n");
+    // }
 
     printf("%s", buffer);
 
@@ -77,7 +85,8 @@ void* readFileThread(void * args){
 
 int main(){
 
-    num_threads = 3;
+    num_threads = 2;
+    number_of_input_files = 4;
 
     FILE * metadataFile;
     char *line = NULL;
@@ -86,57 +95,61 @@ int main(){
     metadataFile = fopen(metadata_file_path, "r");
     read = getline(&line, &len, metadataFile);
     
-    number_of_input_files = atoi(line);
-    printf("Number of input files: %d", number_of_input_files);
+    //number_of_input_files = atoi(line); dont remove
     //each thread works on p files
 
+    
     int p = number_of_input_files / num_threads;
 
-    char test[20];
-    char fileN[20];
     char firstNum[20];
     char secondNum[20];
+
+    ThreadArgument filesInformation[number_of_input_files];
+    for(int m = 0; m < number_of_input_files; m++)
+    {
+        fscanf(metadataFile, "%s %s %s", filesInformation[m].channelPath, firstNum, secondNum);
+        filesInformation[m].low_pass_filter_value = atof(firstNum);
+        filesInformation[m].amplification = atof(secondNum);
+    }
+
+    
     
 
     for(int i = 1; i <= num_threads; i++){
         
         pthread_t thread_id;
 
-        ThreadArgument *args = malloc(sizeof *args);
+        ThreadArgument *args = malloc((sizeof *args) * p);
+
+        ThreadArgument workloadThread[p];
+
+        int threadArgCount = 0;
+
+        for(int ic = i-1; ic < number_of_input_files; ic = ic + num_threads){
+            workloadThread[threadArgCount] = filesInformation[ic];
+            threadArgCount++;
+        }
+
+        for(int m = 0; m < p; m++)
+        {
+        printf("%d struct number: %f %s %f", m, workloadThread[m].amplification, workloadThread[m].channelPath, workloadThread[m].low_pass_filter_value);
+
+        }
+
+        
+
 
         //while(1){
-        while(__sync_bool_compare_and_swap(&lock, 0, 1) != 0);
-            //critical section
-        
-        //read = getline(&line, &len, metadataFile);
-        // while(fgets(test, 20, metadataFile) != NULL){
-
-        // }
-
-        fscanf(metadataFile, "%s %s %s", fileN, firstNum, secondNum);
-
-        printf("Printing from %d, fileName: %s", i, fileN);
+        // while(__sync_bool_compare_and_swap(&lock, 0, 1) != 0);
+        //     //critical section
+    
 
         
-        // args->channelPath = *line;
-        // printf("Printing from %d: %s", i, args->channelPath);
 
-        // read = getline(&line, &len, metadataFile);
-        // args->low_pass_filter_value = atof(line);
-        // printf("Printing from %d: %d", i, args->low_pass_filter_value);
-
-        // read = getline(&line, &len, metadataFile);
-        // args->amplification = atof(line);
-        // printf("Printing from %d: %s", i, args->channelPath);
-
-        // printf("Thread number %d", i);
         // pthread_create(&thread_id, NULL, readFileThread, args);
         // pthread_join(thread_id, NULL);
-        // printf("After thread");
 
-
-            //
-            lock = 0;
+        //     lock = 0;
         //}
 
         
