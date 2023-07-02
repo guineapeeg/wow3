@@ -11,10 +11,18 @@ typedef struct{
 
 int buffer_size;
 int num_threads;
-char *metadata_file_path;
+char *metadata_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/metadata.txt";
 int lock_config;
 int global_checkpointing;
-char *output_file_path;
+//temporary
+char *output_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/output.txt";
+
+FILE* fpMetadata;
+
+int number_of_input_files;
+
+
+int lock = 0;
 
 void* readFileThread(void * args){
     ThreadArgument *actualArguments = args;
@@ -25,33 +33,49 @@ void* readFileThread(void * args){
     char* fileBeginning = "/home/vboxuser/Desktop/C assignments/assignment3/input/file_";
     char *fileToOpen = ".txt";
 
-    //char buf[strlen(length)];
     sprintf(result, "%s%d", fileBeginning, actualArguments->threadCount);
 
     strcat(result, fileToOpen);
 
     printf("%s", result);
 
-    FILE *fptr;
-    fptr = fopen(result, "r");
+    
 
-    //unsigned char data;
-    int bufferSize = actualArguments->bufferSize;
-    int resRead;
-    char buffer[bufferSize];
-    char c;
+//////////////////////////////////
+    // FILE *fptr;
+    // fptr = fopen(result, "r");
 
-    if (fptr != NULL){
+    // int bufferSize = actualArguments->bufferSize;
+    // int resRead;
+    // char buffer[bufferSize];
+    // char c;
 
-        for(int i = 0; i<bufferSize; i++){
-            c = fgetc(fptr);
-            buffer[i] = c;
-            printf("%c \n", buffer[i]);
-        }
+    
 
-    }else{
-        printf("not opened \n");
-    }
+    // if (fptr != NULL){
+
+    //     do{
+
+    //         for(int i = 0; i<bufferSize && c != EOF; i++){
+    //         c = fgetc(fptr);
+    //         buffer[i] = c;
+
+    //         if(buffer[i] != '\n' && buffer[i] != EOF){
+               
+    //         }
+    //         }
+            
+
+    //     }while(c != EOF);
+
+        
+
+    // }else{
+    //     printf("not opened \n");
+    // }
+
+    // int newSampleValue;
+/////////////////////////////////
     
 
     //reading with buffer
@@ -65,6 +89,10 @@ void* readFileThread(void * args){
 int main(){
 
     num_threads = 2;
+    //number_of_input_files = 3;
+
+
+    
 
     // pthread_t thread_id;
     // print("Before thread \n");
@@ -72,9 +100,15 @@ int main(){
     // pthread_join(thread_id, NULL);
     // printf("After thread");
 
-    FILE* fp;
-    fp = fopen("metadata.txt", "w");
-    fputs("2", fp);    
+    FILE * metadataFile;
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    metadataFile = fopen(metadata_file_path, "r");
+    read = getline(&line, &len, metadataFile);
+    
+    number_of_input_files = atoi(line);
+    printf("Number of input files: %d", number_of_input_files);
     
 
     for(int i = 1; i <= num_threads; i++){
@@ -83,13 +117,28 @@ int main(){
 
         ThreadArgument *args = malloc(sizeof *args);
         
-        args->bufferSize = 1; 
+        args->bufferSize = 2; 
         args->threadCount = i;
 
-        printf("Thread number %d", i);
-        pthread_create(&thread_id, NULL, readFileThread, args);
-        pthread_join(thread_id, NULL);
-        printf("After thread");
+        //compare and swap
+        //while(1){
+            while(__sync_bool_compare_and_swap(&lock, 0, 1) != 0);
+            //critical section
+        // printf("Thread number %d", i);
+        // pthread_create(&thread_id, NULL, readFileThread, args);
+        // pthread_join(thread_id, NULL);
+        // printf("After thread");
+            for (int i2 = 0; i2 < 3; i2++){
+                read = getline(&line, &len, metadataFile);
+                printf("Printing from %d: %s", i, line);
+            }
+
+
+            //
+            lock = 0;
+        //}
+
+        
 
         free(args);
     }
@@ -99,7 +148,7 @@ int main(){
 
     // printf("%s", myString);
 
-    fclose(fp);
+    //fclose(fpMetadata);
 
     //printf("hello");
 
