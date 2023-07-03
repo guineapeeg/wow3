@@ -1,5 +1,4 @@
-all: myChannels
-my_userid: my_userid.c
+all: myChannels.c
 	gcc -g -Wall -o myChannels myChannels.c
 
 clean:
