@@ -44,9 +44,10 @@ int main(){
     FILE * metadataFile;
     char *line = NULL;
     size_t len = 0;
-    ssize_t read;
+    //ssize_t read;
     metadataFile = fopen(metadata_file_path, "r");
-    read = getline(&line, &len, metadataFile);
+    //read = 
+    getline(&line, &len, metadataFile);
 
 
     
@@ -78,8 +79,11 @@ int main(){
 
         for(int ic = i; ic < number_of_input_files; ic = ic + num_threads){
             
-
+            
             allOfThreads[i][threadArgCount] = filesInformation[ic];
+            //trying
+            allOfThreads[i][threadArgCount].localDone = i;
+            //tryinggggggg
             threadArgCount++;
         }
 
@@ -97,22 +101,78 @@ int main(){
 
 }
 
+int globalCounter = 0;
+int miniCounter = 0;
+
 void* readFileThread(void * args){
 
-     ThreadArgument *actualArguments = args;
+    ThreadArgument *actualArguments = args;
 
-     //int n = actualArguments[0].localDone;
+    FILE *threadFile;
+    threadFile = fopen(actualArguments->channelPath, "r");
 
-       while(1) {
-                  
-                // acquire a lock
-                pthread_mutex_lock(&lock);
-                   
-                printf("%s %d \n ", actualArguments->channelPath, done);
-                done++;
-                // Finally release mutex
-                pthread_mutex_unlock(&lock);
+    //int resRead;
+    char buffer[bufferSize];
+    char c;
+
+    c = fgetc(threadFile);
+
+    // acquire a lock
+
+    while(1){ //while c != EOF
+    pthread_mutex_lock(&lock);
+    if(globalCounter == actualArguments->localDone){
+
+        //buffer[0] = '\0';
+        
+        for(int counter = 0; counter < bufferSize && c != EOF; counter++){
+         
+        
+        buffer[counter] = c;
+        c = fgetc(threadFile);
+
+        if(c == EOF){
+
+            printf("Buffer with 2 bytes: from %s ------> %s \n",actualArguments->channelPath, buffer);
+
         }
+        }
+
+        if(c != EOF){
+        printf("Buffer with 2 bytes: from %s ------> %s \n",actualArguments->channelPath, buffer);
+        }
+
+        globalCounter = (globalCounter + 1) % num_threads;
+        pthread_cond_signal(&cond1);
+
+        
+    }else{
+        //pthread_mutex_unlock(&lock);
+        pthread_cond_wait(&cond1, &lock);
+        
+
+        }
+        pthread_mutex_unlock(&lock);
+    }
+
+    // while(1){
+    //     if(globalCounter == actualArguments->localDone){
+
+    //         globalCounter = (globalCounter + 1) % num_threads;
+    //         pthread_cond_signal(&cond1);
+    //     }else{
+    //         pthread_cond_wait(&cond1, &lock);
+    //     }
+
+        
+
+    // }
+
+    
+                   
+    // Finally release mutex
+
+        
    
         return NULL;
 
