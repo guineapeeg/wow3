@@ -8,55 +8,61 @@ typedef struct{
     char channelPath[20];
     float low_pass_filter_value;
     float amplification;
-    int localDone;
+    int assignedThread;
 } ThreadArgument;
 
 int buffer_size;
 int num_threads;
-char *metadata_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/metadata.txt";
+char *metadata_file_path;
 int lock_config;
 int global_checkpointing;
-//temporary
-char *output_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/output.txt";
-
-
+char *output_file_path;
 
 int number_of_input_files;
-int bufferSize = 2;
 
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond1 = PTHREAD_COND_INITIALIZER;
-pthread_cond_t cond2 = PTHREAD_COND_INITIALIZER;
-pthread_cond_t cond3 = PTHREAD_COND_INITIALIZER;
-
-int done;
-
 
 void* readFileThread(void *args);
 
-int main(){
+int main(int argc, char* argv[]){
 
+    if(argc == 7){
+
+    buffer_size = atoi(argv[1]);
+    num_threads = atoi(argv[2]);
+    metadata_file_path = argv[3];
+    lock_config = atoi(argv[4]);
+    global_checkpointing = atoi(argv[5]);
+    output_file_path = argv[6];
+
+    }else{
+    buffer_size = 2;
     num_threads = 4;
-    number_of_input_files = 4;
+    metadata_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/metadata.txt";
+    lock_config = 1;
+    global_checkpointing = 0;
+    output_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/output.txt";
+    }
 
-    int p = number_of_input_files / num_threads;
+    //number_of_input_files = 4;
+
+    
 
     FILE * metadataFile;
     char *line = NULL;
     size_t len = 0;
     //ssize_t read;
     metadataFile = fopen(metadata_file_path, "r");
-    //read = 
+    //read = can be used for read line 
     getline(&line, &len, metadataFile);
-
-
-    
-    
+    number_of_input_files = atoi(line);
+    printf("number of input files read: %d", number_of_input_files);
+    int p = number_of_input_files / num_threads;
 
     char firstNum[20];
     char secondNum[20];
 
-    //int k = 0;
 
     ThreadArgument filesInformation[number_of_input_files];
     for(int m = 0; m < number_of_input_files; m++)
@@ -64,8 +70,6 @@ int main(){
         fscanf(metadataFile, "%s %s %s", filesInformation[m].channelPath, firstNum, secondNum);
         filesInformation[m].low_pass_filter_value = atof(firstNum);
         filesInformation[m].amplification = atof(secondNum);
-        //filesInformation[m].localDone = k;
-        //k++;
     }
 
 
@@ -82,7 +86,7 @@ int main(){
             
             allOfThreads[i][threadArgCount] = filesInformation[ic];
             //trying
-            allOfThreads[i][threadArgCount].localDone = i;
+            allOfThreads[i][threadArgCount].assignedThread = i;
             //tryinggggggg
             threadArgCount++;
         }
@@ -110,8 +114,6 @@ void* readFileThread(void * args){
 
     FILE *threadFile;
     threadFile = fopen(actualArguments->channelPath, "r");
-
-    //int resRead;
     
     char c;
 
@@ -125,7 +127,7 @@ void* readFileThread(void * args){
     pthread_mutex_lock(&lock);
     //pthread_cond_wait(&cond1, &lock);
     //printf("In thread %s \n", actualArguments->channelPath);
-    if(globalCounter == actualArguments->localDone){
+    if(globalCounter == actualArguments->assignedThread){
         //strcpy(buffer, "");
         //buffer[1] = '0';
         
@@ -135,7 +137,7 @@ void* readFileThread(void * args){
 
         
         
-        for(int counter = 0; counter < bufferSize && c != EOF; counter++){
+        for(int counter = 0; counter < buffer_size && c != EOF; counter++){
          
         
         buffer[counter] = c;
@@ -166,27 +168,5 @@ void* readFileThread(void * args){
         }
         
     }
-
-    // while(1){
-    //     if(globalCounter == actualArguments->localDone){
-
-    //         globalCounter = (globalCounter + 1) % num_threads;
-    //         pthread_cond_signal(&cond1);
-    //     }else{
-    //         pthread_cond_wait(&cond1, &lock);
-    //     }
-
-        
-
-    // }
-
-    
-                   
-    // Finally release mutex
-
-        
-   
-     //   return NULL;
-
 
 }
