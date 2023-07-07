@@ -56,7 +56,7 @@ int main(){
     char firstNum[20];
     char secondNum[20];
 
-    int k = 0;
+    //int k = 0;
 
     ThreadArgument filesInformation[number_of_input_files];
     for(int m = 0; m < number_of_input_files; m++)
@@ -64,8 +64,8 @@ int main(){
         fscanf(metadataFile, "%s %s %s", filesInformation[m].channelPath, firstNum, secondNum);
         filesInformation[m].low_pass_filter_value = atof(firstNum);
         filesInformation[m].amplification = atof(secondNum);
-        filesInformation[m].localDone = k;
-        k++;
+        //filesInformation[m].localDone = k;
+        //k++;
     }
 
 
@@ -112,18 +112,28 @@ void* readFileThread(void * args){
     threadFile = fopen(actualArguments->channelPath, "r");
 
     //int resRead;
-    char buffer[bufferSize];
+    
     char c;
 
     c = fgetc(threadFile);
 
     // acquire a lock
+    char buffer[2];
 
     while(1){ //while c != EOF
-    pthread_mutex_lock(&lock);
-    if(globalCounter == actualArguments->localDone){
 
-        //buffer[0] = '\0';
+    pthread_mutex_lock(&lock);
+    //pthread_cond_wait(&cond1, &lock);
+    //printf("In thread %s \n", actualArguments->channelPath);
+    if(globalCounter == actualArguments->localDone){
+        //strcpy(buffer, "");
+        //buffer[1] = '0';
+        
+        //strcpy(buffer, "");
+        buffer[0] = '\0';
+        buffer[1] = '\0';
+
+        
         
         for(int counter = 0; counter < bufferSize && c != EOF; counter++){
          
@@ -133,26 +143,28 @@ void* readFileThread(void * args){
 
         if(c == EOF){
 
-            printf("Buffer with 2 bytes: from %s ------> %s \n",actualArguments->channelPath, buffer);
+            printf("Buffer with 2 bytes: from %s ------> %s , global Counter: %d \n",actualArguments->channelPath, buffer, globalCounter);
 
         }
         }
 
         if(c != EOF){
-        printf("Buffer with 2 bytes: from %s ------> %s \n",actualArguments->channelPath, buffer);
+        printf("Buffer with 2 bytes: from %s ------> %s, global Counter: %d \n",actualArguments->channelPath, buffer, globalCounter);
         }
 
+        
+
         globalCounter = (globalCounter + 1) % num_threads;
-        pthread_cond_signal(&cond1);
+        //pthread_cond_signal(&cond1);
+        pthread_mutex_unlock(&lock);
 
         
     }else{
         //pthread_mutex_unlock(&lock);
-        pthread_cond_wait(&cond1, &lock);
-        
-
-        }
         pthread_mutex_unlock(&lock);
+    
+        }
+        
     }
 
     // while(1){
@@ -174,7 +186,7 @@ void* readFileThread(void * args){
 
         
    
-        return NULL;
+     //   return NULL;
 
 
 }
