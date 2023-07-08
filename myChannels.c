@@ -23,6 +23,8 @@ int number_of_input_files;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond1 = PTHREAD_COND_INITIALIZER;
 
+int p;
+
 void* readFileThread(void *args);
 
 int main(int argc, char* argv[]){
@@ -52,7 +54,7 @@ int main(int argc, char* argv[]){
     getline(&line, &len, metadataFile);
     number_of_input_files = atoi(line);
 
-    int p = number_of_input_files / num_threads;
+    p = number_of_input_files / num_threads; //files per thread
 
     //constraints for provided floats
     char firstNum[10];
@@ -96,63 +98,64 @@ int main(int argc, char* argv[]){
 }
 
 int globalCounter = 0;
-//int miniCounter = 0;
 
 void* readFileThread(void * args){
 
     ThreadArgument *actualArguments = args;
 
-    FILE *threadFile;
-    threadFile = fopen(actualArguments->channelPath, "r");
-    
+    FILE *threadFile[p];
     char c;
 
-    c = fgetc(threadFile);
+    for(int tCounter = 0; tCounter < p; tCounter++){
 
-    // acquire a lock
+        threadFile[tCounter] = fopen(actualArguments[tCounter].channelPath, "r");
+
+    }
     char buffer[2];
 
-    while(1){ //while c != EOF
+    while(1){
 
-    pthread_mutex_lock(&lock);
+        pthread_mutex_lock(&lock);
+        if(globalCounter == actualArguments->assignedThread){
 
-    if(globalCounter == actualArguments->assignedThread){
+            for(int mCounter = 0; mCounter < p; mCounter++){
 
-        for(int i = 0; i < buffer_size; i++){
+                for(int i = 0; i < buffer_size; i++){
 
-            buffer[i] = '\0';
+                buffer[i] = '\0';
 
+                }
+
+                c = fgetc(threadFile[mCounter]);
+
+                for(int counter = 0; counter < buffer_size && c != EOF; counter++){
+
+                    buffer[counter] = c;
+
+                    c = fgetc(threadFile[mCounter]);
+
+                    if(c == EOF){
+
+                    printf("Buffer with 2 bytes: from %s ------>\n", buffer);
+
+                   }
+
+                }
+                if( c!= EOF){
+
+                    printf("Buffer with 2 bytes: from %s ------>\n", buffer);
+                }
+
+            }
+
+            globalCounter = (globalCounter + 1) % num_threads;
+
+            pthread_mutex_unlock(&lock);
+
+        }else{
+            pthread_mutex_unlock(&lock);
         }
-       
-        for(int counter = 0; counter < buffer_size && c != EOF; counter++){
-         
-        
-        buffer[counter] = c;
-        c = fgetc(threadFile);
 
-        if(c == EOF){
-
-            printf("Buffer with 2 bytes: from %s ------> %s , global Counter: %d \n",actualArguments->channelPath, buffer, globalCounter);
-
-        }
-        }
-
-        if(c != EOF){
-        printf("Buffer with 2 bytes: from %s ------> %s, global Counter: %d \n",actualArguments->channelPath, buffer, globalCounter);
-        }
-
-        
-
-        globalCounter = (globalCounter + 1) % num_threads;
-
-        pthread_mutex_unlock(&lock);
-
-        
-    }else{
-        pthread_mutex_unlock(&lock);
-    
-        }
-        
     }
 
 }
