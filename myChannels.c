@@ -38,31 +38,25 @@ int main(int argc, char* argv[]){
 
     }else{
     buffer_size = 2;
-    num_threads = 4;
+    num_threads = 2;
     metadata_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/metadata.txt";
     lock_config = 1;
     global_checkpointing = 0;
     output_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/output.txt";
     }
 
-    //number_of_input_files = 4;
-
-    
-
     FILE * metadataFile;
     char *line = NULL;
     size_t len = 0;
-    //ssize_t read;
     metadataFile = fopen(metadata_file_path, "r");
-    //read = can be used for read line 
     getline(&line, &len, metadataFile);
     number_of_input_files = atoi(line);
-    printf("number of input files read: %d", number_of_input_files);
+
     int p = number_of_input_files / num_threads;
 
-    char firstNum[20];
-    char secondNum[20];
-
+    //constraints for provided floats
+    char firstNum[10];
+    char secondNum[10];
 
     ThreadArgument filesInformation[number_of_input_files];
     for(int m = 0; m < number_of_input_files; m++)
@@ -77,26 +71,22 @@ int main(int argc, char* argv[]){
     ThreadArgument allOfThreads[num_threads][p];
     
 
+    //thread creation
     for(int i = 0; i < num_threads; i++){
         
         int threadArgCount = 0;
 
         for(int ic = i; ic < number_of_input_files; ic = ic + num_threads){
-            
-            
+                      
             allOfThreads[i][threadArgCount] = filesInformation[ic];
-            //trying
             allOfThreads[i][threadArgCount].assignedThread = i;
-            //tryinggggggg
             threadArgCount++;
-        }
 
+        }
         
         pthread_create(&(tid[i]), NULL, readFileThread, allOfThreads[i]); 
 
     }
-
-    
 
     while(1){
     }
@@ -106,7 +96,7 @@ int main(int argc, char* argv[]){
 }
 
 int globalCounter = 0;
-int miniCounter = 0;
+//int miniCounter = 0;
 
 void* readFileThread(void * args){
 
@@ -125,18 +115,15 @@ void* readFileThread(void * args){
     while(1){ //while c != EOF
 
     pthread_mutex_lock(&lock);
-    //pthread_cond_wait(&cond1, &lock);
-    //printf("In thread %s \n", actualArguments->channelPath);
-    if(globalCounter == actualArguments->assignedThread){
-        //strcpy(buffer, "");
-        //buffer[1] = '0';
-        
-        //strcpy(buffer, "");
-        buffer[0] = '\0';
-        buffer[1] = '\0';
 
-        
-        
+    if(globalCounter == actualArguments->assignedThread){
+
+        for(int i = 0; i < buffer_size; i++){
+
+            buffer[i] = '\0';
+
+        }
+       
         for(int counter = 0; counter < buffer_size && c != EOF; counter++){
          
         
@@ -157,12 +144,11 @@ void* readFileThread(void * args){
         
 
         globalCounter = (globalCounter + 1) % num_threads;
-        //pthread_cond_signal(&cond1);
+
         pthread_mutex_unlock(&lock);
 
         
     }else{
-        //pthread_mutex_unlock(&lock);
         pthread_mutex_unlock(&lock);
     
         }
