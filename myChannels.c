@@ -40,7 +40,7 @@ int main(int argc, char* argv[]){
 
     }else{
     buffer_size = 2;
-    num_threads = 2;
+    num_threads = 4;
     metadata_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/metadata.txt";
     lock_config = 1;
     global_checkpointing = 0;
@@ -112,6 +112,13 @@ void* readFileThread(void * args){
 
     }
     char buffer[2];
+    
+    //dynamic int array 
+    int b = 50;
+    int* integers = (int*) malloc(b * sizeof(int));
+    int integerCounter = 0;
+
+    int continueRead = 1;
 
     while(1){
 
@@ -127,35 +134,60 @@ void* readFileThread(void * args){
                 }
 
                 c = fgetc(threadFile[mCounter]);
+                buffer[0] = c;
 
-                for(int counter = 0; counter < buffer_size && c != EOF; counter++){
+                for(int counter = 1; counter < buffer_size && c != EOF; counter++){ 
 
+                    
+                    c = fgetc(threadFile[mCounter]);
                     buffer[counter] = c;
 
-                    c = fgetc(threadFile[mCounter]);
 
                     if(c == EOF){
 
-                    printf("Buffer with 2 bytes: from %s ------>\n", buffer);
+                        int testNum = atoi(buffer);
+                        printf("Integer form: %d", testNum);
+
+                    integers[integerCounter] = testNum;
+                    integerCounter++;
+                    printf("Buffer %s: from %s ------>\n ", actualArguments[mCounter].channelPath, buffer);
+                    continueRead = 0;
 
                    }
 
                 }
+
                 if( c!= EOF){
 
-                    printf("Buffer with 2 bytes: from %s ------>\n", buffer);
+                    int testNum = atoi(buffer);
+                    integers[integerCounter] = testNum;
+                    integerCounter++;
+                    printf("Integer form: %d", testNum);
+                    printf("Buffer %s: from %s ------>\n", actualArguments[mCounter].channelPath, buffer);
+
                 }
 
             }
 
             globalCounter = (globalCounter + 1) % num_threads;
-
             pthread_mutex_unlock(&lock);
 
         }else{
             pthread_mutex_unlock(&lock);
         }
 
+        if(continueRead == 0){
+
+            printf("Printing from thread %s whole array: \n", actualArguments->channelPath);
+
+            for(int moor = 0; moor<= integerCounter; moor++){
+                printf("%d \n", integers[moor]);
+                 }
+
+        }
+
     }
+
+    
 
 }
