@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <pthread.h> 
 #include <string.h>
+#include <ctype.h>
 
 typedef struct{
     char channelPath[20];
@@ -26,6 +27,8 @@ pthread_cond_t cond1 = PTHREAD_COND_INITIALIZER;
 int p;
 
 void* readFileThread(void *args);
+
+int loopStop = 0;
 
 int main(int argc, char* argv[]){
 
@@ -59,6 +62,8 @@ int main(int argc, char* argv[]){
     //constraints for provided floats
     char firstNum[10];
     char secondNum[10];
+
+    loopStop = number_of_input_files;
 
     ThreadArgument filesInformation[number_of_input_files];
     for(int m = 0; m < number_of_input_files; m++)
@@ -118,12 +123,16 @@ void* readFileThread(void * args){
     int* integers = (int*) malloc(b * sizeof(int));
     int integerCounter = 0;
 
-    int continueRead = 1;
+    //int continueRead = 1;
 
-    while(1){
+    
+
+    while(loopStop > 0){
 
         pthread_mutex_lock(&lock);
         if(globalCounter == actualArguments->assignedThread){
+
+            printf("Reading from %s", actualArguments[0].channelPath);
 
             for(int mCounter = 0; mCounter < p; mCounter++){
 
@@ -145,13 +154,26 @@ void* readFileThread(void * args){
 
                     if(c == EOF){
 
-                        int testNum = atoi(buffer);
-                        printf("Integer form: %d", testNum);
 
+                    int boolean = 0;
+                    for(int i2 = 0; i2<2; i2++){
+                        if(isdigit(buffer[i2])){
+                            boolean = 1;
+                            i2 = 100;
+                        }
+                    }
+
+
+                    if(boolean){
+
+                    int testNum = atoi(buffer);
                     integers[integerCounter] = testNum;
                     integerCounter++;
-                    printf("Buffer %s: from %s ------>\n ", actualArguments[mCounter].channelPath, buffer);
-                    continueRead = 0;
+
+                    }
+
+                    loopStop--;
+                    printf("Loop stop: %d", loopStop);
 
                    }
 
@@ -159,11 +181,28 @@ void* readFileThread(void * args){
 
                 if( c!= EOF){
 
+                    // int testNum = atoi(buffer);
+
+
+                    // integers[integerCounter] = testNum;
+                    // integerCounter++;
+
+                    int boolean = 0;
+                    for(int i2 = 0; i2<2; i2++){
+                        if(isdigit(buffer[i2])){
+                            boolean = 1;
+                            i2 = 100;
+                        }
+                    }
+
+
+                    if(boolean){
+
                     int testNum = atoi(buffer);
                     integers[integerCounter] = testNum;
                     integerCounter++;
-                    printf("Integer form: %d", testNum);
-                    printf("Buffer %s: from %s ------>\n", actualArguments[mCounter].channelPath, buffer);
+
+                    }
 
                 }
 
@@ -176,17 +215,21 @@ void* readFileThread(void * args){
             pthread_mutex_unlock(&lock);
         }
 
-        if(continueRead == 0){
-
-            printf("Printing from thread %s whole array: \n", actualArguments->channelPath);
-
-            for(int moor = 0; moor<= integerCounter; moor++){
-                printf("%d \n", integers[moor]);
-                 }
-
-        }
+        
 
     }
+
+    //if(continueRead == 0){
+
+        printf("Printing from thread %s whole array: \n", actualArguments->channelPath);
+
+        for(int moor = 0; moor<= integerCounter; moor++){
+            printf("%d \n", integers[moor]);
+        }
+
+    //    }
+
+    return 0;
 
     
 
