@@ -172,6 +172,7 @@ void* readFileThread(void * args){
                             //printf("Hello\n");
                             endOfFile[fileQ] = 0;
                             counter = buffer_size;
+                            loopStop--;
                         }else{
                             //printf("Hello\n");
                             buffer[counter] = c;
@@ -188,28 +189,31 @@ void* readFileThread(void * args){
                     }
                     int buffer2Count = 0;
 
-                    //int boolean = 0;
+                    int boolean = 0;
                     for(int i2 = 0; i2<buffer_size; i2++){
                         if(isdigit(buffer[i2])){
                             buffer2[buffer2Count] = buffer[i2];
                             buffer2Count++;
+                            boolean = 1;
                         }
                         //boolean = 1;
                     }
 
                     //printf("Hello\n");
 
-                    //if(boolean){
+                    if(boolean){
                     //printf("Hello\n");
                     float testNum = atof(buffer2);
                     //printf("Read number: %s", buffer);
                     //printf("Read number: %f", testNum);
                     numbersFromEachFile[fileQ][counterForFloatPosition[fileQ]] = testNum;
-                    printf("Hello\n");
+                    //printf("Hello\n");
                     counterForFloatPosition[fileQ] = counterForFloatPosition[fileQ] + 1;
-                    //}
+                    printf("%s \n", actualArguments[0].channelPath);
+                    printf("Recorded number: %f \n", numbersFromEachFile[fileQ][counterForFloatPosition[fileQ] - 1]);
+                    }
 
-                    printf("Recorded number: %f", numbersFromEachFile[fileQ][counterForFloatPosition[fileQ] - 1]);
+                    
 
 
 
@@ -229,10 +233,48 @@ void* readFileThread(void * args){
 
     }//big while loop
 
-        
+    pthread_mutex_lock(&lock);
+
+    // //alpha counting
+    printf("\n Alpha: %f \n", actualArguments->amplification);
+    printf("\n Alpha counting: \n");
+
+    
+
+    //number arrays are in n
+    for(int fileQueued = 0; fileQueued < p; fileQueued++){
+        int size = counterForFloatPosition[fileQueued];
+        for(int innerCounter = 1; innerCounter < size; innerCounter++){
+
+            float newValue;
+            float newValue2;
+
+            float alpha = actualArguments->amplification;
+            newValue = alpha * numbersFromEachFile[fileQueued][innerCounter];
+            newValue2 = (1-alpha) * numbersFromEachFile[fileQueued][innerCounter-1];
+            newValue = newValue + newValue2;
+            numbersFromEachFile[fileQueued][innerCounter] = newValue;
+        }
+
+    }
+
+    for(int fileQueued = 0; fileQueued < p; fileQueued++){
+        int size = counterForFloatPosition[fileQueued];
+        for(int innerCounter = 0; innerCounter < size; innerCounter++){
+
+            printf("%f \n", numbersFromEachFile[fileQueued][innerCounter]);
+        }
+
+    }
+
+    printf("\n Beta: %f \n", actualArguments->low_pass_filter_value);
+    printf("\n Beta counting: \n");
 
 
-   // return 0;
+
+    pthread_mutex_unlock(&lock);
+
+    return 0;
 
     
 
