@@ -32,6 +32,8 @@ int loopStop = 0;
 
 int main(int argc, char* argv[]){
 
+    setbuf(stdout, NULL);
+
     if(argc == 7){
 
     buffer_size = atoi(argv[1]);
@@ -42,7 +44,7 @@ int main(int argc, char* argv[]){
     output_file_path = argv[6];
 
     }else{
-    buffer_size = 2;
+    buffer_size = 3;
     num_threads = 4;
     metadata_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/metadata.txt";
     lock_config = 1;
@@ -76,10 +78,11 @@ int main(int argc, char* argv[]){
 
     pthread_t tid[num_threads];
     ThreadArgument allOfThreads[num_threads][p];
-    
 
     //thread creation
     for(int i = 0; i < num_threads; i++){
+
+        
         
         int threadArgCount = 0;
 
@@ -109,127 +112,127 @@ void* readFileThread(void * args){
     ThreadArgument *actualArguments = args;
 
     FILE *threadFile[p];
-    char c;
+    
 
     for(int tCounter = 0; tCounter < p; tCounter++){
 
         threadFile[tCounter] = fopen(actualArguments[tCounter].channelPath, "r");
 
     }
-    char buffer[2];
+    char buffer[buffer_size];
+    char c;
     
-    //dynamic int array 
-    int b = 50;
-    int* integers = (int*) malloc(b * sizeof(int));
-    int integerCounter = 0;
-
-    //int continueRead = 1;
-
+    //dynamic array 
+    pthread_mutex_lock(&lock);
+    float numbersFromEachFile[p][20];
+    int counterForFloatPosition[p];
+    pthread_mutex_unlock(&lock);
     
+
+    int endOfFile[p];
+    for(int p2 = 0; p2<p; p2++){
+        endOfFile[p2] = 1;
+    }
+
+    for(int cc = 0; cc<p; cc++){
+        counterForFloatPosition[cc] = 0;
+    }
+
+    //int bufferCounter = 0;
+
 
     while(loopStop > 0){
 
         pthread_mutex_lock(&lock);
+
         if(globalCounter == actualArguments->assignedThread){
 
-            printf("Reading from %s", actualArguments[0].channelPath);
+            //printf("Hello\n");
 
-            for(int mCounter = 0; mCounter < p; mCounter++){
+            for(int fileQ = 0; fileQ < p; fileQ++){//for each file assigned to this thread
 
-                for(int i = 0; i < buffer_size; i++){
+                //printf("Hello\n");
 
-                buffer[i] = '\0';
+                if(endOfFile[fileQ] == 1){//if file hasnot ended yet
 
-                }
+                    //printf("Hello\n");
 
-                c = fgetc(threadFile[mCounter]);
-                buffer[0] = c;
+                    for(int i = 0; i < buffer_size; i++){
+                       buffer[i] = '\0';
+                    }
 
-                for(int counter = 1; counter < buffer_size && c != EOF; counter++){ 
+                    //printf("Hello\n");
 
-                    
-                    c = fgetc(threadFile[mCounter]);
-                    buffer[counter] = c;
+                    for(int counter = 0; counter < buffer_size; counter++){ //filling in buffer
 
+                        c = fgetc(threadFile[fileQ]);
+                        //printf("Hello\n");
 
-                    if(c == EOF){
-
-
-                    int boolean = 0;
-                    for(int i2 = 0; i2<2; i2++){
-                        if(isdigit(buffer[i2])){
-                            boolean = 1;
-                            i2 = 100;
+                        if(c == EOF){
+                            //printf("Hello\n");
+                            endOfFile[fileQ] = 0;
+                            counter = buffer_size;
+                        }else{
+                            //printf("Hello\n");
+                            buffer[counter] = c;
                         }
+
+                    }//filling in buffer
+
+                    //printf("Hello\n");
+
+                    char buffer2[buffer_size];
+
+                    for(int i = 0; i < buffer_size; i++){
+                       buffer2[i] = '\0';
                     }
+                    int buffer2Count = 0;
 
-
-                    if(boolean){
-
-                    int testNum = atoi(buffer);
-                    integers[integerCounter] = testNum;
-                    integerCounter++;
-
-                    }
-
-                    loopStop--;
-                    printf("Loop stop: %d", loopStop);
-
-                   }
-
-                }
-
-                if( c!= EOF){
-
-                    // int testNum = atoi(buffer);
-
-
-                    // integers[integerCounter] = testNum;
-                    // integerCounter++;
-
-                    int boolean = 0;
-                    for(int i2 = 0; i2<2; i2++){
+                    //int boolean = 0;
+                    for(int i2 = 0; i2<buffer_size; i2++){
                         if(isdigit(buffer[i2])){
-                            boolean = 1;
-                            i2 = 100;
+                            buffer2[buffer2Count] = buffer[i2];
+                            buffer2Count++;
                         }
+                        //boolean = 1;
                     }
 
+                    //printf("Hello\n");
 
-                    if(boolean){
+                    //if(boolean){
+                    //printf("Hello\n");
+                    float testNum = atof(buffer2);
+                    //printf("Read number: %s", buffer);
+                    //printf("Read number: %f", testNum);
+                    numbersFromEachFile[fileQ][counterForFloatPosition[fileQ]] = testNum;
+                    printf("Hello\n");
+                    counterForFloatPosition[fileQ] = counterForFloatPosition[fileQ] + 1;
+                    //}
 
-                    int testNum = atoi(buffer);
-                    integers[integerCounter] = testNum;
-                    integerCounter++;
+                    printf("Recorded number: %f", numbersFromEachFile[fileQ][counterForFloatPosition[fileQ] - 1]);
 
-                    }
 
-                }
 
-            }
+                }//if file hasnot ended yet
+
+                
+                
+            }//for each file assigned to this thread
 
             globalCounter = (globalCounter + 1) % num_threads;
             pthread_mutex_unlock(&lock);
 
-        }else{
+        }else
+        {
             pthread_mutex_unlock(&lock);
         }
 
+    }//big while loop
+
         
 
-    }
 
-    //if(continueRead == 0){
-
-        printf("Printing from thread %s whole array: \n", actualArguments->channelPath);
-
-        for(int moor = 0; moor<= integerCounter; moor++){
-            printf("%d \n", integers[moor]);
-        }
-
-    //    }
-
-    return 0;
+   // return 0;
 
     
 
