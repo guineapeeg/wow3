@@ -22,6 +22,7 @@ char *output_file_path;
 int number_of_input_files;
 
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t globalLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond1 = PTHREAD_COND_INITIALIZER;
 
 int p;
@@ -51,6 +52,10 @@ int main(int argc, char* argv[]){
     global_checkpointing = 0;
     output_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/output.txt";
     }
+
+    remove(output_file_path);
+    FILE *fpStart = fopen(output_file_path, "w");
+    fclose(fpStart);
 
     FILE * metadataFile;
     char *line = NULL;
@@ -140,6 +145,8 @@ void* readFileThread(void * args){
 
     //int bufferCounter = 0;
 
+    if(global_checkpointing == 1){
+
 
     while(loopStop > 0){
 
@@ -209,8 +216,8 @@ void* readFileThread(void * args){
                     numbersFromEachFile[fileQ][counterForFloatPosition[fileQ]] = testNum;
                     //printf("Hello\n");
                     counterForFloatPosition[fileQ] = counterForFloatPosition[fileQ] + 1;
-                    printf("%s \n", actualArguments[0].channelPath);
-                    printf("Recorded number: %f \n", numbersFromEachFile[fileQ][counterForFloatPosition[fileQ] - 1]);
+                    //printf("%s \n", actualArguments[0].channelPath);
+                    //printf("Recorded number: %f \n", numbersFromEachFile[fileQ][counterForFloatPosition[fileQ] - 1]);
                     }
 
                     
@@ -232,12 +239,70 @@ void* readFileThread(void * args){
         }
 
     }//big while loop
+    }else{// if global checkpointing is not one
 
+        while(loopStop > 0){
+
+            for(int fileQ = 0; fileQ < p; fileQ++){//for each file assigned to this thread
+
+                if(endOfFile[fileQ] == 1){//if file hasnot ended yet
+
+                    for(int i = 0; i < buffer_size; i++){
+                       buffer[i] = '\0';
+                    }
+
+                    for(int counter = 0; counter < buffer_size; counter++){ //filling in buffer
+
+                        c = fgetc(threadFile[fileQ]);
+
+                        if(c == EOF){
+                            endOfFile[fileQ] = 0;
+                            counter = buffer_size;
+                            loopStop--;
+                        }else{
+                            buffer[counter] = c;
+                        }
+
+                    }//filling in buffer
+
+                    char buffer2[buffer_size];
+
+                    for(int i = 0; i < buffer_size; i++){
+                       buffer2[i] = '\0';
+                    }
+                    int buffer2Count = 0;
+
+                    int boolean = 0;
+                    for(int i2 = 0; i2<buffer_size; i2++){
+                        if(isdigit(buffer[i2])){
+                            buffer2[buffer2Count] = buffer[i2];
+                            buffer2Count++;
+                            boolean = 1;
+                        }
+                    }
+
+                    if(boolean){
+                    float testNum = atof(buffer2);
+                    numbersFromEachFile[fileQ][counterForFloatPosition[fileQ]] = testNum;
+                    counterForFloatPosition[fileQ] = counterForFloatPosition[fileQ] + 1;
+                    }
+
+
+                }//if file hasnot ended yet            
+            }//for each file assigned to this thread
+
+        }
+
+
+    }
+    //counting after reading from channels
     pthread_mutex_lock(&lock);
 
+    
+
     // //alpha counting
-    printf("\n Alpha: %f \n", actualArguments->amplification);
-    printf("\n Alpha counting: \n");
+    // printf("\n Alpha: %f \n", actualArguments->amplification);
+    // printf("\n Alpha counting: \n");
 
     
 
@@ -256,9 +321,37 @@ void* readFileThread(void * args){
             numbersFromEachFile[fileQueued][innerCounter] = newValue;
         }
 
-    }
+    }   
+
+    // for(int fileQueued = 0; fileQueued < p; fileQueued++){
+    //     int size = counterForFloatPosition[fileQueued];
+    //     for(int innerCounter = 0; innerCounter < size; innerCounter++){
+
+    //         printf("%f \n", numbersFromEachFile[fileQueued][innerCounter]);
+    //     }
+
+    // }
+
+    // printf("\n Beta: %f \n", actualArguments->low_pass_filter_value);
+    // printf("\n Beta counting: \n");
 
     for(int fileQueued = 0; fileQueued < p; fileQueued++){
+        int size = counterForFloatPosition[fileQueued];
+        for(int innerCounter = 0; innerCounter < size; innerCounter++){
+
+            float newValue;
+
+            float beta = actualArguments->low_pass_filter_value;
+            newValue = beta * numbersFromEachFile[fileQueued][innerCounter];
+            numbersFromEachFile[fileQueued][innerCounter] = newValue;
+        }
+
+    }
+
+    
+
+    for(int fileQueued = 0; fileQueued < p; fileQueued++){
+        printf("%s \n", actualArguments->channelPath);
         int size = counterForFloatPosition[fileQueued];
         for(int innerCounter = 0; innerCounter < size; innerCounter++){
 
@@ -267,12 +360,72 @@ void* readFileThread(void * args){
 
     }
 
-    printf("\n Beta: %f \n", actualArguments->low_pass_filter_value);
-    printf("\n Beta counting: \n");
-
-
-
     pthread_mutex_unlock(&lock);
+
+    //OUTPUTTING THE RESULT
+    ///
+    ///
+    ///
+    ///
+    pthread_mutex_lock(&globalLock);
+    
+
+    for(int fileQueued = 0; fileQueued < p; fileQueued++){ //for each file this thread handles
+        FILE *outputFile = fopen(output_file_path, "r");
+        FILE *fTemp;
+
+        char buff[50];
+        char buff2[50];
+
+        fTemp = fopen("replace.tmp", "w");
+
+        float tempF = 0;     
+
+        int size = counterForFloatPosition[fileQueued]; //how many floats we extracted from a file      
+        int counting = 0;
+
+        while (fgets(buff, 50, outputFile) != NULL)
+        {
+
+            if(counting < size){
+
+                tempF = atof(buff);
+                tempF = tempF + numbersFromEachFile[fileQueued][counting];
+                sprintf(buff2, "%f", tempF);
+                fputs(buff2, fTemp);
+                putc('\n', fTemp);
+                counting++;
+
+            }else{
+                fputs(buff, fTemp);
+                //putc('\n', fTemp);
+            }
+            
+        }
+
+        while(counting < size){
+
+            tempF = numbersFromEachFile[fileQueued][counting];
+            sprintf(buff2, "%f", tempF);
+            fputs(buff2, fTemp);
+            putc('\n', fTemp);
+            counting++;
+
+        }
+
+        fclose(fTemp);
+        fclose(outputFile);
+        
+
+        remove(output_file_path);
+        rename("replace.tmp", "output.txt");
+
+    }   
+
+    
+
+    pthread_mutex_unlock(&globalLock);
+
 
     return 0;
 
