@@ -25,11 +25,17 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t globalLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond1 = PTHREAD_COND_INITIALIZER;
 
+//for individual locks
+pthread_mutex_t arraOfIndividualLocks[20];
+float answerLinesForOutput[20];
+
 int p;
 
 void* readFileThread(void *args);
 
 int loopStop = 0;
+
+int biggestNumOfLines = 0;
 
 int main(int argc, char* argv[]){
 
@@ -47,10 +53,10 @@ int main(int argc, char* argv[]){
     }else{
     buffer_size = 3;
     num_threads = 4;
-    metadata_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/metadata.txt";
+    metadata_file_path = "/home/vboxuser/Desktop/C assignments/chfgjkjkhf/wow3/metadata.txt";
     lock_config = 1;
     global_checkpointing = 0;
-    output_file_path = "/home/vboxuser/Desktop/C assignments/assignment3/output.txt";
+    output_file_path = "/home/vboxuser/Desktop/C assignments/chfgjkjkhf/wow3/output.txt";
     }
 
     remove(output_file_path);
@@ -216,6 +222,10 @@ void* readFileThread(void * args){
                     numbersFromEachFile[fileQ][counterForFloatPosition[fileQ]] = testNum;
                     //printf("Hello\n");
                     counterForFloatPosition[fileQ] = counterForFloatPosition[fileQ] + 1;
+
+                    if(counterForFloatPosition[fileQ] > biggestNumOfLines){
+                        biggestNumOfLines = counterForFloatPosition[fileQ];
+                    }
                     //printf("%s \n", actualArguments[0].channelPath);
                     //printf("Recorded number: %f \n", numbersFromEachFile[fileQ][counterForFloatPosition[fileQ] - 1]);
                     }
@@ -367,6 +377,7 @@ void* readFileThread(void * args){
     ///
     ///
     ///
+    if(lock_config == 1){
     pthread_mutex_lock(&globalLock);
     
 
@@ -422,9 +433,29 @@ void* readFileThread(void * args){
 
     }   
 
-    
-
     pthread_mutex_unlock(&globalLock);
+    }
+
+    if(lock_config == 2){
+
+        for(int fileQueued = 0; fileQueued < p; fileQueued++){
+        int size = counterForFloatPosition[fileQueued];
+        for(int innerCounter = 0; innerCounter < size; innerCounter++){
+
+            pthread_mutex_lock(&arraOfIndividualLocks[innerCounter]);
+
+            answerLinesForOutput[innerCounter] = answerLinesForOutput[innerCounter] + numbersFromEachFile[fileQueued][innerCounter];
+
+            pthread_mutex_unlock(&arraOfIndividualLocks[innerCounter]);
+            
+        }//dff
+
+    }
+
+
+    }
+
+    //exit(0);
 
 
     return 0;
