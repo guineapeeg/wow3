@@ -1,0 +1,20 @@
+in this assignment i implented 
+1. granular locks (locks each position in output array)
+2. global lock
+
+regarding local locks, i understood it as a requirement to implement a program that creates several threads, each thread get assigned some ammount of files, and there are two 
+ways to read data from a file:
+1. all threads read their assigned files concurrently
+2. threads read theit files in order, for example, thread 1 reads k bytes of files assigned to it, then thread 2 reads k bytes of files assigned to it, etc...
+
+i output all numbers in the file output as floats
+
+assumed beta and alpha arguments will be provided for every file in metadata file, and metadata structure like i have it is important for execution
+
+i wasnt sure if  program was supposed to exit
+
+all arrays and etc are not dynamic, and are implemented in some constant size
+
+worked with text files provided
+
+output file gets updated after each run
